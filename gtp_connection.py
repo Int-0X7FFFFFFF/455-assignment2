@@ -13,6 +13,7 @@ import numpy as np
 import re
 from sys import stdin, stdout, stderr
 from typing import Any, Callable, Dict, List, Tuple
+import signal
 
 from board_base import (
     BLACK,
@@ -358,6 +359,28 @@ class GtpConnection:
     Assignment 2 - game-specific commands you have to implement or modify
     ==========================================================================
     """
+
+    def timeout_handler(self, signum, frame):
+        raise TimeoutError("Function execution timed out")
+    
+    def timeout(self, seconds):
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                signal.signal(signal.SIGALRM, self.timeout_handler)
+                signal.alarm(seconds)
+
+                try:
+                    result = func(*args, **kwargs)
+                except TimeoutError:
+                    result = None
+                finally:
+                    signal.alarm(0)  # Stop alarm
+
+                return result
+
+            return wrapper
+
+        return decorator
 
     def genmove_cmd(self, args: List[str]) -> None:
         """ 
