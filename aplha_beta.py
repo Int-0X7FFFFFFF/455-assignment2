@@ -1,5 +1,19 @@
 from board import GoBoard, GO_POINT
-from board_base import GO_COLOR, opponent, EMPTY, BORDER
+from board_base import GO_COLOR, opponent, EMPTY, BORDER, BLACK
+import numpy as np
+
+class LookUpTable:
+    def __init__(self) -> None:
+        self.table = {}
+
+    def __repr__(self):
+        return self.table.__repr__()
+
+    def store(self, board:np.ndarray, value, goboard:GoBoard):
+        self.table[(tuple(board))] = (value, goboard)
+
+    def look_up(self, board:np.ndarray):
+        return self.table.get(tuple(board))
 
 def connect_cal(
         list_current: list, board: GoBoard, current_player: GO_COLOR
@@ -43,24 +57,34 @@ def h_fun(board: GoBoard, move: GO_POINT, current_player: GO_COLOR) -> int:
     return h_value
 
 
-def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR):
-    draw = None
-    draw_b = None
+def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR, table:LookUpTable):
     if board.is_terminal() or depth == 0:
         return board.statically_evaluate(color), None, board
+
+    best_move = None
+    best_board = None
+
     list_move = [(move, h_fun(board, move, color)) for move in board.get_empty_points()]
     sorted_list_move = sorted(list_move, key=lambda x: x[1], reverse=False)
-    for index, (move, _) in enumerate(sorted_list_move):
+
+    for move, _ in sorted_list_move:
         board_copy = board.copy()
         board_copy.play_move(move, color)
-        res = alpha_beta(board_copy, -beta, -alpha, depth - 1, opponent(color))
-        value = -res[0]
+        look_up = table.look_up(board_copy.board)
+
+        if look_up is not None and look_up[1] >= depth:
+            value = look_up[0]
+        else:
+            res = alpha_beta(board_copy, -beta, -alpha, depth - 1, opponent(color), table)
+            value = -res[0]
+            table.store(board_copy.board, value, depth)
+
         if value > alpha:
             alpha = value
-        if value >= beta:
-            return beta, move, board_copy
-        if value == EMPTY and draw == None:
-            draw = move
-            draw_b = board_copy
-    return alpha, draw, draw_b
+            best_move = move
+            best_board = board_copy
 
+        if alpha >= beta:
+            break
+
+    return alpha, best_move, best_board

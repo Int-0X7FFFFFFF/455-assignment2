@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List, Tuple
 import signal
 from math import inf
 import heapq
-from aplha_beta import alpha_beta
+from aplha_beta import alpha_beta, LookUpTable
 
 from board_base import (
     BLACK,
@@ -33,19 +33,6 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-
-class LookUpTable:
-    def __init__(self) -> None:
-        self.table = {}
-
-    def __repr__(self):
-        return self.table.__repr__()
-
-    def store(self, board:np.ndarray, color:GO_COLOR, b, w, value):
-        self.table[(tuple(board), color, b, w)] = value
-
-    def look_up(self, board:np.ndarray, color:GO_COLOR, b, w):
-        return self.table.get((tuple(board), color, b, w))
     
 
 class HeapItem:
@@ -466,7 +453,9 @@ class GtpConnection:
         def solve_fun():
             self.DAG_map = {}
             self.init_search = 1
-            ans, move, board= alpha_beta(self.board, -inf, inf, self.time_limt * 10, color)
+            self.board.set_draw_winner(color)
+            table = LookUpTable()
+            ans, move, board= alpha_beta(self.board, -inf, inf, self.time_limt * 10, color, table)
             print(GoBoardUtil.get_twoD_board(board))
             # _table = LookUpTable()
             # ans, move = self.negamax(self.board, color)
@@ -507,10 +496,12 @@ class GtpConnection:
         @self.timeout
         def solve_fun():
             self.init_search = 1
-            ans, move, board = alpha_beta(self.board, -inf, inf, self.time_limt * 10, current_player)
+            table = LookUpTable()
+            self.board.set_draw_winner(current_player)
+            ans, move, board = alpha_beta(self.board, -inf, inf, self.time_limt * 10, current_player, table)
             print(GoBoardUtil.get_twoD_board(board))
             # ans, move = self.negamax(self.board, self.board.current_player)
-            return ans, move
+            return ans, move, board
 
         try_solve = solve_fun()
 
@@ -525,10 +516,15 @@ class GtpConnection:
 
         if try_solve is None:
             self.respond("unknown")
-        elif try_solve[0] == True:
-            print(try_solve)
-            self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
         elif try_solve[0] == False:
+            if len(try_solve[2].get_empty_points()) == 0:
+                self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+            else:
+                if current_player == BLACK:
+                    self.respond(f'b {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+                else:
+                    self.respond(f'w {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+        elif try_solve[0] == True:
             color = None
             if current_player == BLACK:
                 color = "w"

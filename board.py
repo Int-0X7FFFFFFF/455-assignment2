@@ -52,6 +52,7 @@ class GoBoard(object):
         self.calculate_rows_cols_diags()
         self.black_captures = 0
         self.white_captures = 0
+        self.draw_winner = None
 
     def add_two_captures(self, color: GO_COLOR) -> None:
         if color == BLACK:
@@ -128,6 +129,7 @@ class GoBoard(object):
         """
         Creates a start state, an empty board with given size.
         """
+        self.draw_winner = None
         self.size: int = size
         self.NS: int = size + 1
         self.WE: int = 1
@@ -146,6 +148,8 @@ class GoBoard(object):
         b = GoBoard(self.size)
         assert b.NS == self.NS
         assert b.WE == self.WE
+        if self.draw_winner != None:
+            b.draw_winner = self.draw_winner
         b.white_captures = self.white_captures
         b.black_captures = self.black_captures
         b.ko_recapture = self.ko_recapture
@@ -416,14 +420,14 @@ class GoBoard(object):
         elif self.get_captures(WHITE) >= 10:
             result2 = WHITE
         elif self.get_empty_points().size == 0:
-            return False
+            return self.draw_winner
 
         if (result1 == BLACK) or (result2 == BLACK):
             return BLACK == color
         elif (result1 == WHITE) or (result2 == WHITE):
             return WHITE == color
         elif self.get_empty_points().size == 0:
-            return False
+            return self.draw_winner
         else:
             return False
     def who_win(self):
@@ -445,3 +449,7 @@ class GoBoard(object):
             return EMPTY
         else:
             return "ERROR"
+        
+    def set_draw_winner(self, color:GO_COLOR):
+        self.draw_winner = color
+        return
