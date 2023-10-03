@@ -1,0 +1,1 @@
+gogui-regress Ninuki.py ./a2_public_easy.gtp

@@ -146,6 +146,8 @@ class GoBoard(object):
         b = GoBoard(self.size)
         assert b.NS == self.NS
         assert b.WE == self.WE
+        b.white_captures = self.white_captures
+        b.black_captures = self.black_captures
         b.ko_recapture = self.ko_recapture
         b.last_move = self.last_move
         b.last2_move = self.last2_move
@@ -393,3 +395,53 @@ class GoBoard(object):
             if counter == 5 and prev != EMPTY:
                 return prev
         return EMPTY
+    
+    def is_terminal(self) -> bool:
+        if (
+            (self.detect_five_in_a_row() != EMPTY)
+            or (self.get_captures(BLACK) >= 10)
+            or (self.get_captures(WHITE) >= 10)
+            or (self.get_empty_points().size == 0)
+        ):
+            return True
+        else:
+            return False
+        
+    def statically_evaluate(self, color:GO_COLOR):
+        result1 = self.detect_five_in_a_row()
+        result2 = EMPTY
+
+        if self.get_captures(BLACK) >= 10:
+            result2 = BLACK
+        elif self.get_captures(WHITE) >= 10:
+            result2 = WHITE
+        elif self.get_empty_points().size == 0:
+            return False
+
+        if (result1 == BLACK) or (result2 == BLACK):
+            return BLACK == color
+        elif (result1 == WHITE) or (result2 == WHITE):
+            return WHITE == color
+        elif self.get_empty_points().size == 0:
+            return False
+        else:
+            return False
+    def who_win(self):
+        result1 = self.detect_five_in_a_row()
+        result2 = EMPTY
+
+        if self.get_captures(BLACK) >= 10:
+            result2 = BLACK
+        elif self.get_captures(WHITE) >= 10:
+            result2 = WHITE
+        elif self.get_empty_points().size == 0:
+            return EMPTY
+
+        if (result1 == BLACK) or (result2 == BLACK):
+            return BLACK
+        elif (result1 == WHITE) or (result2 == WHITE):
+            return WHITE
+        elif self.get_empty_points().size == 0:
+            return EMPTY
+        else:
+            return "ERROR"

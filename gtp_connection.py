@@ -14,6 +14,9 @@ import re
 from sys import stdin, stdout, stderr
 from typing import Any, Callable, Dict, List, Tuple
 import signal
+from math import inf
+import heapq
+from aplha_beta import alpha_beta
 
 from board_base import (
     BLACK,
@@ -30,6 +33,45 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
+
+class LookUpTable:
+    def __init__(self) -> None:
+        self.table = {}
+
+    def __repr__(self):
+        return self.table.__repr__()
+
+    def store(self, board:np.ndarray, color:GO_COLOR, b, w, value):
+        self.table[(tuple(board), color, b, w)] = value
+
+    def look_up(self, board:np.ndarray, color:GO_COLOR, b, w):
+        return self.table.get((tuple(board), color, b, w))
+    
+
+class HeapItem:
+    def __init__(self) -> None:
+        self.board = None
+        self.h_value = None
+    def set_up(self, board:GO_POINT, h_value):
+        self.board = board
+        self.h_value = h_value
+
+    def __lt__(self, other):
+        return self.h_value < other.h_value
+    
+    def __le__(self, other):
+        return self.h_value <= other.h_value
+    
+    def __gt__(self, other):
+        return self.h_value > other.h_value
+    
+    def __ge__(self, other):
+        return self.h_value >= other.h_value
+    
+    def __eq__(self, other):
+        return self.h_value == other.h_value
+    
+
 
 
 class GtpConnection:
@@ -50,6 +92,7 @@ class GtpConnection:
         self.go_engine = go_engine
         self.board: GoBoard = board
         self.time_limt = 1
+        self.DAG_map = {}
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
@@ -166,6 +209,7 @@ class GtpConnection:
         Reset the board to empty board of given size
         """
         self.time_limt = 1
+        self.DAG_map = {}
         self.board.reset(size)
 
     def board2d(self) -> str:
@@ -378,36 +422,32 @@ class GtpConnection:
     def timeout_handler(self, signum, frame):
         raise TimeoutError("Function execution timed out")
 
-    def timeout(self):
+    def timeout(self, func):
         seconds = self.time_limt
 
-        def decorator(func):
-            def wrapper(*args, **kwargs):
-                signal.signal(signal.SIGALRM, self.timeout_handler)
-                signal.alarm(seconds)
+        def wrapper(*args, **kwargs):
+            signal.signal(signal.SIGALRM, self.timeout_handler)
+            signal.alarm(seconds)
 
-                try:
-                    result = func(*args, **kwargs)
-                except TimeoutError:
-                    result = None
-                finally:
-                    signal.alarm(0)  # Stop alarm
+            try:
+                result = func(*args, **kwargs)
+            except TimeoutError:
+                result = None
+            except RecursionError:
+                print("RecursionError")
+                result = None
+            finally:
+                signal.alarm(0)  # Stop alarm
 
-                return result
+            return result
 
-            return wrapper
-
-        return decorator
+        return wrapper
+        
 
     def genmove_cmd(self, args: List[str]) -> None:
         """
         Modify this function for Assignment 2.
         """
-
-        @self.timeout()
-        def solve_fun():
-            pass
-
         board_color = args[0].lower()
         color = color_to_int(board_color)
         result1 = self.board.detect_five_in_a_row()
@@ -421,9 +461,26 @@ class GtpConnection:
         if legal_moves.size == 0:
             self.respond("pass")
             return
-        rng = np.random.default_rng()
-        choice = rng.choice(len(legal_moves))
-        move = legal_moves[choice]
+
+        @self.timeout
+        def solve_fun():
+            self.DAG_map = {}
+            self.init_search = 1
+            ans, move, board= alpha_beta(self.board, -inf, inf, self.time_limt * 10, color)
+            print(GoBoardUtil.get_twoD_board(board))
+            # _table = LookUpTable()
+            # ans, move = self.negamax(self.board, color)
+            return move
+
+        try_solve = solve_fun()
+
+        if try_solve is None:
+            rng = np.random.default_rng()
+            choice = rng.choice(len(legal_moves))
+            move = legal_moves[choice]
+        else:
+            move = try_solve
+
         move_coord = point_to_coord(move, self.board.size)
         move_as_string = format_point(move_coord)
         self.play_cmd([board_color, move_as_string, "print_move"])
@@ -440,10 +497,44 @@ class GtpConnection:
             self.respond(f"unsupport arg {args[0]}")
             return
         self.time_limt = time_limt
+        self.respond("")
+        return
 
     def solve_cmd(self, args: List[str]) -> None:
         """Implement this function for Assignment 2"""
-        pass
+        current_player = self.board.current_player
+
+        @self.timeout
+        def solve_fun():
+            self.init_search = 1
+            ans, move, board = alpha_beta(self.board, -inf, inf, self.time_limt * 10, current_player)
+            print(GoBoardUtil.get_twoD_board(board))
+            # ans, move = self.negamax(self.board, self.board.current_player)
+            return ans, move
+
+        try_solve = solve_fun()
+
+        # if try_solve == None:
+        #     self.respond("unknown")
+        # elif try_solve[1] == None:
+        #     self.respond(try_solve[0])
+        # else:
+        #     self.respond(f'{try_solve[0]} {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+
+
+
+        if try_solve is None:
+            self.respond("unknown")
+        elif try_solve[0] == True:
+            print(try_solve)
+            self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+        elif try_solve[0] == False:
+            color = None
+            if current_player == BLACK:
+                color = "w"
+            else:
+                color = "b"
+            self.respond(f"{color}")
 
     """
     ==========================================================================
