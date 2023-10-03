@@ -464,6 +464,7 @@ class GtpConnection:
         try_solve = solve_fun()
 
         if try_solve is None:
+            print("move random")
             rng = np.random.default_rng()
             choice = rng.choice(len(legal_moves))
             move = legal_moves[choice]
@@ -516,15 +517,14 @@ class GtpConnection:
 
         if try_solve is None:
             self.respond("unknown")
-        elif try_solve[0] == False:
-            if len(try_solve[2].get_empty_points()) == 0:
-                self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+        elif try_solve[0] == 1:
+            if current_player == BLACK:
+                self.respond(f'b {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
             else:
-                if current_player == BLACK:
-                    self.respond(f'b {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
-                else:
-                    self.respond(f'w {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
-        elif try_solve[0] == True:
+                self.respond(f'w {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+        elif try_solve[0] == 0:
+            self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+        elif try_solve[0] == -1:
             color = None
             if current_player == BLACK:
                 color = "w"

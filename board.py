@@ -420,14 +420,20 @@ class GoBoard(object):
         elif self.get_captures(WHITE) >= 10:
             result2 = WHITE
         elif self.get_empty_points().size == 0:
-            return self.draw_winner
+            return 0
 
         if (result1 == BLACK) or (result2 == BLACK):
-            return BLACK == color
+            if BLACK == color:
+                return 1
+            else:
+                return -1
         elif (result1 == WHITE) or (result2 == WHITE):
-            return WHITE == color
+            if WHITE == color:
+                return 1
+            else:
+                return -1
         elif self.get_empty_points().size == 0:
-            return self.draw_winner
+            return 0
         else:
             return False
     def who_win(self):

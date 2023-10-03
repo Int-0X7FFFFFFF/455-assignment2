@@ -1,1 +1,1 @@
-gogui-regress Ninuki.py ./a2_public_easy.gtp
+gogui-regress "python3 Ninuki.py" ./a2_public_easy.gtp

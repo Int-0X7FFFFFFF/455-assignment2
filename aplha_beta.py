@@ -15,6 +15,31 @@ class LookUpTable:
     def look_up(self, board:np.ndarray):
         return self.table.get(tuple(board))
 
+
+def next_two(list_current:list, board:GoBoard, current_player:GO_COLOR, move:GO_POINT):
+        d1 = 0
+        d2 = 0
+        index = list_current.index(move)
+        if 0 <= (index + 3) < len(list_current):
+            if board.get_color(list_current[index + 1]) == opponent(current_player) \
+                and board.get_color(list_current[index + 2]) == EMPTY \
+                and board.get_color(list_current[index + 3]) == EMPTY:
+                d1 = 0.25
+            if board.get_color(list_current[index + 2]) == opponent(current_player)\
+                and board.get_color(list_current[index + 1]) == opponent(current_player) \
+                and board.get_color(list_current[index + 3]) == EMPTY:
+                d1 = 0.5
+        if 0 <= (index - 3) < len(list_current):
+            if board.get_color(list_current[index - 1]) == opponent(current_player) \
+                and board.get_color(list_current[index - 2]) == EMPTY \
+                and board.get_color(list_current[index - 3]) == EMPTY:
+                d2 = 0.25
+            if list_current[index - 2] == opponent(current_player) \
+                and board.get_color(list_current[index - 1]) == opponent(current_player) \
+                and board.get_color(list_current[index - 3]) == EMPTY:
+                d2 = 0.5 
+        return max(d1, d2)
+
 def connect_cal(
         list_current: list, board: GoBoard, current_player: GO_COLOR
     ) -> int:
@@ -36,24 +61,35 @@ def connect_cal(
 
 def h_fun(board: GoBoard, move: GO_POINT, current_player: GO_COLOR) -> int:
     h_value = 5
+    h_cap_op = 5
     board_copy = board.copy()
     board_copy.play_move(move, current_player)
-    h_value = min(h_value, ((10 - board_copy.get_captures(current_player)) / 2))
+    board_copy_op = board.copy()
+    board_copy.play_move(move, opponent(current_player))
+    h_value_cap = min(h_value, ((10 - board_copy.get_captures(current_player)) / 2))
+    h_cap_op = min(h_value, ((10 - board_copy_op.get_captures(opponent(current_player))) / 2))
 
     for row in board.rows:
         if move in row:
             counter = connect_cal(row, board_copy, current_player)
-            # h_value -= self.next_two(row, board_copy, current_player, move)
-            h_value = min(h_value, (5 - counter))
+            counter_op = connect_cal(row, board_copy_op, opponent(current_player))
+            h_tmp = h_value_cap - next_two(row, board_copy, current_player, move)
+            h_tmp_op = h_cap_op - next_two(row, board_copy_op, opponent(current_player), move)
+            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
     for col in board.cols:
         if move in col:
             counter = connect_cal(col, board_copy, current_player)
-            # h_value -= self.next_two(col, board_copy, current_player, move)
-            h_value = min(h_value, (5 - counter))
+            counter_op = connect_cal(col, board_copy_op, opponent(current_player))
+            h_tmp = h_value_cap - next_two(col, board_copy, current_player, move)
+            h_tmp_op = h_cap_op - next_two(col, board_copy_op, opponent(current_player), move)
+            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
     for diag in board.diags:
         if move in diag:
-            counter = connect_cal(col, board_copy, current_player)
-            h_value = min(h_value, (5 - counter))
+            counter = connect_cal(diag, board_copy, current_player)
+            counter_op = connect_cal(diag, board_copy_op, opponent(current_player))
+            h_tmp = h_value_cap - next_two(diag, board_copy, current_player, move)
+            h_tmp_op = h_cap_op - next_two(diag, board_copy_op, opponent(current_player), move)
+            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
     return h_value
 
 
