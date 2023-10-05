@@ -136,22 +136,22 @@ def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR, table: LookU
     if board.is_terminal() or depth == 0:
         return board.statically_evaluate(color), None, board
     
-    unbeatable = False
+    # unbeatable = False
     
-    for sequence in [board.rows, board.cols, board.diags]:
-        for line in sequence:
-            if is_unbeatable_sequence(line, board, opponent(color)):
-                unbeatable = True
-                break
+    # for sequence in [board.rows, board.cols, board.diags]:
+    #     for line in sequence:
+    #         if is_unbeatable_sequence(line, board, opponent(color)):
+    #             unbeatable = True
+    #             break
 
-    if unbeatable:
-        for move in board.get_empty_points():
-            board_copy = board.copy()
-            board_copy.play_move(move, color)
-            if board_copy.is_terminal():
-                return 1, move, board
-    if unbeatable:
-        return -1, None, board
+    # if unbeatable:
+    #     for move in board.get_empty_points():
+    #         board_copy = board.copy()
+    #         board_copy.play_move(move, color)
+    #         if board_copy.is_terminal():
+    #             return 1, move, board
+    # if unbeatable:
+    #     return -1, None, board
 
     best_move = None
     best_board = None

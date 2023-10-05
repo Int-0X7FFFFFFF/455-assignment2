@@ -413,8 +413,8 @@ class GtpConnection:
         seconds = self.time_limt
 
         def wrapper(*args, **kwargs):
-            # signal.signal(signal.SIGALRM, self.timeout_handler)
-            # signal.alarm(seconds)
+            signal.signal(signal.SIGALRM, self.timeout_handler)
+            signal.alarm(seconds)
 
             try:
                 result = func(*args, **kwargs)
