@@ -413,13 +413,14 @@ class GtpConnection:
         seconds = self.time_limt
 
         def wrapper(*args, **kwargs):
-            signal.signal(signal.SIGALRM, self.timeout_handler)
-            signal.alarm(seconds)
+            # signal.signal(signal.SIGALRM, self.timeout_handler)
+            # signal.alarm(seconds)
 
             try:
                 result = func(*args, **kwargs)
             except TimeoutError:
                 result = None
+                print("time out")
             except RecursionError:
                 print("RecursionError")
                 result = None
@@ -455,7 +456,7 @@ class GtpConnection:
             self.init_search = 1
             self.board.set_draw_winner(color)
             table = LookUpTable()
-            ans, move, board= alpha_beta(self.board, -inf, inf, self.time_limt * 10, color, table)
+            ans, move, board= alpha_beta(self.board, -inf, inf, 1000000, color, table)
             print(GoBoardUtil.get_twoD_board(board))
             # _table = LookUpTable()
             # ans, move = self.negamax(self.board, color)

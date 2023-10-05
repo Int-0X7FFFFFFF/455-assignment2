@@ -19,16 +19,22 @@ class LookUpTable:
 
 def is_unbeatable_sequence(list_current: list, board: GoBoard, player: GO_COLOR) -> bool:
     seq_length = 0
-    for idx, point in enumerate(list_current):
-        if board.get_color(point) == player:
-            seq_length += 1
+    idx = 0
+    while idx < len(list_current):
+        if board.get_color(list_current[idx]) == player:
+            start_idx = idx
+            while idx < len(list_current) and board.get_color(list_current[idx]) == player:
+                seq_length += 1
+                idx += 1
+
             if seq_length == 4:
                 # Check if there's a space before and after the sequence
-                if idx - 4 < 0 or board.get_color(list_current[idx - 4]) == EMPTY:
-                    if idx + 1 >= len(list_current) or board.get_color(list_current[idx + 1]) == EMPTY:
+                if start_idx - 1 < 0 or board.get_color(list_current[start_idx - 1]) == EMPTY:
+                    if idx == len(list_current) or board.get_color(list_current[idx]) == EMPTY:
                         return True
         else:
             seq_length = 0
+            idx += 1
     return False
 
 def next_two(
@@ -130,11 +136,22 @@ def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR, table: LookU
     if board.is_terminal() or depth == 0:
         return board.statically_evaluate(color), None, board
     
+    unbeatable = False
+    
     for sequence in [board.rows, board.cols, board.diags]:
         for line in sequence:
             if is_unbeatable_sequence(line, board, opponent(color)):
-                winner = opponent(color)
-                return -1, None, board
+                unbeatable = True
+                break
+
+    if unbeatable:
+        for move in board.get_empty_points():
+            board_copy = board.copy()
+            board_copy.play_move(move, color)
+            if board_copy.is_terminal():
+                return 1, move, board
+    if unbeatable:
+        return -1, None, board
 
     best_move = None
     best_board = None

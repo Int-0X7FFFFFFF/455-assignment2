@@ -49,7 +49,7 @@ To support larger boards the coordinate printing in
 GtpConnection.format_point needs to be changed.
 """
 MAXSIZE: int = 25
-DEFAULT_SIZE: int = 7
+DEFAULT_SIZE: int = 5
 
 """
 The number of array elements in a "padded 1D" representation 
