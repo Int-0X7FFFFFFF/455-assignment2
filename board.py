@@ -51,6 +51,7 @@ class GoBoard(object):
         self.reset(size)
         self.calculate_rows_cols_diags()
         self.black_captures = 0
+        self.winner = None
         self.white_captures = 0
         self.draw_winner = None
 
@@ -401,17 +402,10 @@ class GoBoard(object):
         return EMPTY
     
     def is_terminal(self) -> bool:
-        if (
-            (self.detect_five_in_a_row() != EMPTY)
-            or (self.get_captures(BLACK) >= 10)
-            or (self.get_captures(WHITE) >= 10)
-            or (self.get_empty_points().size == 0)
-        ):
+        if self.get_empty_points().size == 0:
+            self.winner = EMPTY
             return True
-        else:
-            return False
         
-    def statically_evaluate(self, color:GO_COLOR):
         result1 = self.detect_five_in_a_row()
         result2 = EMPTY
 
@@ -419,23 +413,27 @@ class GoBoard(object):
             result2 = BLACK
         elif self.get_captures(WHITE) >= 10:
             result2 = WHITE
-        elif self.get_empty_points().size == 0:
-            return 0
 
         if (result1 == BLACK) or (result2 == BLACK):
-            if BLACK == color:
-                return 1
-            else:
-                return -1
+            self.winner = BLACK
+            return True
         elif (result1 == WHITE) or (result2 == WHITE):
-            if WHITE == color:
-                return 1
-            else:
-                return -1
-        elif self.get_empty_points().size == 0:
-            return 0
-        else:
+            self.winner = WHITE
+            return True
+        
+        return False
+        
+    def statically_evaluate(self, color:GO_COLOR):
+        if self.winner == None:
             return False
+        if self.winner == color:
+            return 1
+        if self.winner == EMPTY:
+            return 0
+        if self.winner != color:
+            return -1
+
+
     def who_win(self):
         result1 = self.detect_five_in_a_row()
         result2 = EMPTY

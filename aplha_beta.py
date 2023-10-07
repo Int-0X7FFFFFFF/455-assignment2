@@ -17,70 +17,21 @@ class LookUpTable:
     def look_up(self, board: np.ndarray):
         return self.table.get(tuple(board))
 
-def is_unbeatable_sequence(list_current: list, board: GoBoard, player: GO_COLOR) -> bool:
-    seq_length = 0
-    idx = 0
-    while idx < len(list_current):
-        if board.get_color(list_current[idx]) == player:
-            start_idx = idx
-            while idx < len(list_current) and board.get_color(list_current[idx]) == player:
-                seq_length += 1
-                idx += 1
-
-            if seq_length == 4:
-                # Check if there's a space before and after the sequence
-                if start_idx - 1 < 0 or board.get_color(list_current[start_idx - 1]) == EMPTY:
-                    if idx == len(list_current) or board.get_color(list_current[idx]) == EMPTY:
-                        return True
-        else:
-            seq_length = 0
-            idx += 1
-    return False
-
-def next_two(
-    list_current: list, board: GoBoard, current_player: GO_COLOR, move: GO_POINT
-):
-    d1 = 0
-    d2 = 0
-    index = list_current.index(move)
-    if 0 <= (index + 3) < len(list_current):
-        if (
-            board.get_color(list_current[index + 1]) == opponent(current_player)
-            and board.get_color(list_current[index + 2]) == EMPTY
-            and board.get_color(list_current[index + 3]) == EMPTY
-        ):
-            d1 = 0.25
-        if (
-            board.get_color(list_current[index + 2]) == opponent(current_player)
-            and board.get_color(list_current[index + 1]) == opponent(current_player)
-            and board.get_color(list_current[index + 3]) == EMPTY
-        ):
-            d1 = 0.5
-    if 0 <= (index - 3) < len(list_current):
-        if (
-            board.get_color(list_current[index - 1]) == opponent(current_player)
-            and board.get_color(list_current[index - 2]) == EMPTY
-            and board.get_color(list_current[index - 3]) == EMPTY
-        ):
-            d2 = 0.25
-        if (
-            list_current[index - 2] == opponent(current_player)
-            and board.get_color(list_current[index - 1]) == opponent(current_player)
-            and board.get_color(list_current[index - 3]) == EMPTY
-        ):
-            d2 = 0.5
-    return max(d1, d2)
-
 
 def connect_cal(list_current: list, board: GoBoard, current_player: GO_COLOR) -> int:
     U = -1
     prev = BORDER
     counter = 1
-    for stone in list_current:
+    for index, stone in enumerate(list_current):
         if board.get_color(stone) == prev and prev == current_player:
             counter += 1
         else:
             if counter > U:
+                if counter == 4:
+                # Check if there's a space before and after the sequence
+                    if (index - 5 >= 0 and board.get_color(list_current[index - 5]) == EMPTY) and \
+                    (board.get_color(stone) == EMPTY):
+                        return 105
                 U = counter
             counter = 1
             prev = board.get_color(stone)
@@ -92,52 +43,52 @@ def connect_cal(list_current: list, board: GoBoard, current_player: GO_COLOR) ->
 
 def h_fun(board: GoBoard, move: GO_POINT, current_player: GO_COLOR) -> int:
     h_value = 5
-    h_cap_op = 5
-    board_copy = board.copy()
-    board_copy.play_move(move, current_player)
-    board_copy_op = board.copy()
-    board_copy.play_move(move, opponent(current_player))
-    h_value_cap = min(h_value, ((10 - board_copy.get_captures(current_player)) / 2))
-    h_cap_op = min(
-        h_value, ((10 - board_copy_op.get_captures(opponent(current_player))) / 2)
-    )
+    arraycopy = board.board.copy()
+    w_e = board.white_captures
+    b_e = board.black_captures
+    board.play_move(move, current_player)
 
     for row in board.rows:
         if move in row:
-            counter = connect_cal(row, board_copy, current_player)
-            counter_op = connect_cal(row, board_copy_op, opponent(current_player))
-            h_tmp = h_value_cap - next_two(row, board_copy, current_player, move)
-            h_tmp_op = h_cap_op - next_two(
-                row, board_copy_op, opponent(current_player), move
-            )
-            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
+            counter = connect_cal(row, board, current_player)
+            if counter == 5 or counter == 105:
+                board.board = arraycopy
+                board.white_captures = w_e
+                board.black_captures = b_e
+                return -100
+            h_value = min(h_value, (5 - counter))
     for col in board.cols:
         if move in col:
-            counter = connect_cal(col, board_copy, current_player)
-            counter_op = connect_cal(col, board_copy_op, opponent(current_player))
-            h_tmp = h_value_cap - next_two(col, board_copy, current_player, move)
-            h_tmp_op = h_cap_op - next_two(
-                col, board_copy_op, opponent(current_player), move
-            )
-            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
+            counter = connect_cal(col, board, current_player)
+            if counter == 5 or counter == 105:
+                board.board = arraycopy
+                board.white_captures = w_e
+                board.black_captures = b_e
+                return -100
+            h_value = min(h_value, (5 - counter))
     for diag in board.diags:
         if move in diag:
-            counter = connect_cal(diag, board_copy, current_player)
-            counter_op = connect_cal(diag, board_copy_op, opponent(current_player))
-            h_tmp = h_value_cap - next_two(diag, board_copy, current_player, move)
-            h_tmp_op = h_cap_op - next_two(
-                diag, board_copy_op, opponent(current_player), move
-            )
-            h_value = min(h_value, (5 - counter), (5 - counter_op), h_tmp, h_tmp_op)
+            counter = connect_cal(diag, board, current_player)
+            if counter == 5 or counter == 105:
+                board.board = arraycopy
+                board.white_captures = w_e
+                board.black_captures = b_e
+                return -100
+            h_value = min(h_value, (5 - counter))
+
+    board.board = arraycopy
+    board.white_captures = w_e
+    board.black_captures = b_e
+    board.winner = None
     return h_value
 
 
 def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR, table: LookUpTable):
     if board.is_terminal() or depth == 0:
-        return board.statically_evaluate(color), None, board
-    
+        return board.statically_evaluate(color), None
+
     # unbeatable = False
-    
+
     # for sequence in [board.rows, board.cols, board.diags]:
     #     for line in sequence:
     #         if is_unbeatable_sequence(line, board, opponent(color)):
@@ -154,31 +105,38 @@ def alpha_beta(board: GoBoard, alpha, beta, depth, color: GO_COLOR, table: LookU
     #     return -1, None, board
 
     best_move = None
-    best_board = None
 
     list_move = [(move, h_fun(board, move, color)) for move in board.get_empty_points()]
     sorted_list_move = sorted(list_move, key=lambda x: x[1], reverse=False)
 
+    if len(sorted_list_move)!= 0 and sorted_list_move[0][1] == -100:
+        return 1, sorted_list_move[0][0]
+
     for move, _ in sorted_list_move:
-        board_copy = board.copy()
-        board_copy.play_move(move, color)
-        look_up = table.look_up(board_copy.board)
+        arraycopy = board.board.copy()
+        winner = board.winner
+        w_e = board.white_captures
+        b_e = board.black_captures
+        board.play_move(move, color)
+        look_up = table.look_up(board.board)
 
         if look_up is not None and look_up[1] >= depth:
             value = look_up[0]
         else:
-            res = alpha_beta(
-                board_copy, -beta, -alpha, depth - 1, opponent(color), table
-            )
+            res = alpha_beta(board, -beta, -alpha, depth - 1, opponent(color), table)
             value = -res[0]
-            table.store(board_copy.board, value, depth)
+            table.store(board.board, value, depth)
+
+        board.board = arraycopy
+        board.white_captures = w_e
+        board.black_captures = b_e
+        board.winner = winner
 
         if value > alpha:
             alpha = value
             best_move = move
-            best_board = board_copy
 
         if alpha >= beta:
             break
 
-    return alpha, best_move, best_board
+    return alpha, best_move

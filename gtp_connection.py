@@ -33,32 +33,31 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
-    
+
 
 class HeapItem:
     def __init__(self) -> None:
         self.board = None
         self.h_value = None
-    def set_up(self, board:GO_POINT, h_value):
+
+    def set_up(self, board: GO_POINT, h_value):
         self.board = board
         self.h_value = h_value
 
     def __lt__(self, other):
         return self.h_value < other.h_value
-    
+
     def __le__(self, other):
         return self.h_value <= other.h_value
-    
+
     def __gt__(self, other):
         return self.h_value > other.h_value
-    
+
     def __ge__(self, other):
         return self.h_value >= other.h_value
-    
+
     def __eq__(self, other):
         return self.h_value == other.h_value
-    
-
 
 
 class GtpConnection:
@@ -430,7 +429,6 @@ class GtpConnection:
             return result
 
         return wrapper
-        
 
     def genmove_cmd(self, args: List[str]) -> None:
         """
@@ -456,8 +454,8 @@ class GtpConnection:
             self.init_search = 1
             self.board.set_draw_winner(color)
             table = LookUpTable()
-            ans, move, board= alpha_beta(self.board, -inf, inf, 1000000, color, table)
-            print(GoBoardUtil.get_twoD_board(board))
+            ans, move = alpha_beta(self.board, -inf, inf, 1000000, color, table)
+            # print(GoBoardUtil.get_twoD_board(board))
             # _table = LookUpTable()
             # ans, move = self.negamax(self.board, color)
             return move
@@ -500,31 +498,30 @@ class GtpConnection:
             self.init_search = 1
             table = LookUpTable()
             self.board.set_draw_winner(current_player)
-            ans, move, board = alpha_beta(self.board, -inf, inf, self.time_limt * 10, current_player, table)
-            print(GoBoardUtil.get_twoD_board(board))
+            ans, move = alpha_beta(
+                self.board, -inf, inf, self.time_limt * 10, current_player, table
+            )
+            # print(GoBoardUtil.get_twoD_board(board))
             # ans, move = self.negamax(self.board, self.board.current_player)
-            return ans, move, board
+            return ans, move
 
         try_solve = solve_fun()
-
-        # if try_solve == None:
-        #     self.respond("unknown")
-        # elif try_solve[1] == None:
-        #     self.respond(try_solve[0])
-        # else:
-        #     self.respond(f'{try_solve[0]} {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
-
-
 
         if try_solve is None:
             self.respond("unknown")
         elif try_solve[0] == 1:
             if current_player == BLACK:
-                self.respond(f'b {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+                self.respond(
+                    f"b {format_point(point_to_coord(try_solve[1], self.board.size))}".lower()
+                )
             else:
-                self.respond(f'w {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+                self.respond(
+                    f"w {format_point(point_to_coord(try_solve[1], self.board.size))}".lower()
+                )
         elif try_solve[0] == 0:
-            self.respond(f'draw {format_point(point_to_coord(try_solve[1], self.board.size))}'.lower())
+            self.respond(
+                f"draw {format_point(point_to_coord(try_solve[1], self.board.size))}".lower()
+            )
         elif try_solve[0] == -1:
             color = None
             if current_player == BLACK:
